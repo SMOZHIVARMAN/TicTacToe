@@ -17,17 +17,15 @@ const App = () => {
   const [isXTurn, setIsXTurn] = useState(true);
   const [score, setScore] = useState({ X: 0, O: 0 });
   const [rounds, setRounds] = useState(0);
-  const [gameOver, setGameOver] = useState(false);
   const [winner, setWinner] = useState("");
+  const [gameOver, setGameOver] = useState(false);
+  const [roundWinner, setRoundWinner] = useState("");
+  const [history, setHistory] = useState([]); // Tracks round history
 
   const checkWinner = (newBoard) => {
     for (let combo of winningCombinations) {
       const [a, b, c] = combo;
-      if (
-        newBoard[a] &&
-        newBoard[a] === newBoard[b] &&
-        newBoard[a] === newBoard[c]
-      ) {
+      if (newBoard[a] && newBoard[a] === newBoard[b] && newBoard[a] === newBoard[c]) {
         return newBoard[a];
       }
     }
@@ -44,12 +42,14 @@ const App = () => {
     const result = checkWinner(newBoard);
 
     if (result) {
-      if (result === "X") {
-        setScore((prev) => ({ ...prev, X: prev.X + 1 }));
-      } else if (result === "O") {
-        setScore((prev) => ({ ...prev, O: prev.O + 1 }));
-      }
-      setTimeout(() => resetBoard(), 1000);
+      const roundResult = result === "Tie" ? "Round Tied!" : `${result} Wins Round ${rounds + 1}`;
+      setRoundWinner(roundResult);
+
+      if (result === "X") setScore((prev) => ({ ...prev, X: prev.X + 1 }));
+      if (result === "O") setScore((prev) => ({ ...prev, O: prev.O + 1 }));
+
+      setHistory((prev) => [...prev, roundResult]); // Store round result
+      setTimeout(() => resetBoard(), 1500);
       setRounds((prev) => prev + 1);
     } else {
       setIsXTurn(!isXTurn);
@@ -59,46 +59,67 @@ const App = () => {
   const resetBoard = () => {
     setBoard(Array(9).fill(null));
     setIsXTurn(true);
+    setRoundWinner("");
   };
 
   useEffect(() => {
-    if (rounds >= 5) {
-      if (score.X > score.O) {
-        setWinner("X Wins the Game!");
-      } else if (score.O > score.X) {
-        setWinner("O Wins the Game!");
-      } else {
-        setWinner("Game is Tied!");
-      }
+    if (score.X === 2) {
+      setWinner("X Wins the Series!");
+      setGameOver(true);
+    } else if (score.O === 2) {
+      setWinner("O Wins the Series!");
       setGameOver(true);
     }
-  }, [rounds, score]);
+  }, [score]);
+
+  const restartSeries = () => {
+    setBoard(Array(9).fill(null));
+    setIsXTurn(true);
+    setScore({ X: 0, O: 0 });
+    setRounds(0);
+    setWinner("");
+    setGameOver(false);
+    setRoundWinner("");
+    setHistory([]); // Clear history
+  };
 
   return (
     <div className="container">
-      <h1>Tic Tac Toe</h1>
+      <h1>Tic Tac Toe - Best of 3</h1>
       <div className="scoreboard">
-        <p>❌  {score.X}</p>
-        <p>🔵  {score.O}</p>
+        <p>❌ {score.X}</p>
+        <p>🔵 {score.O}</p>
       </div>
 
       {gameOver ? (
         <div className="game-over">
           <h2>{winner}</h2>
           <h1 className="big-text">GAME OVER</h1>
+          <button className="reset-series-btn" onClick={restartSeries}>Restart Series</button>
         </div>
       ) : (
-        <div className="board">
-          {board.map((cell, index) => (
-            <div
-              key={index}
-              className={`cell ${cell === "X" ? "x" : cell === "O" ? "o" : ""}`}
-              onClick={() => handleClick(index)}
-            >
-              {cell}
-            </div>
-          ))}
-        </div>
+        <>
+          <h3 className="winner">{roundWinner}</h3>
+          <div className="board">
+            {board.map((cell, index) => (
+              <div
+                key={index}
+                className={`cell ${cell === "X" ? "x" : cell === "O" ? "o" : ""}`}
+                onClick={() => handleClick(index)}
+              >
+                {cell}
+              </div>
+            ))}
+          </div>
+          <div className="history">
+            <h3>Round History</h3>
+            <ul>
+              {history.map((entry, index) => (
+                <li key={index}>{entry}</li>
+              ))}
+            </ul>
+          </div>
+        </>
       )}
     </div>
   );
